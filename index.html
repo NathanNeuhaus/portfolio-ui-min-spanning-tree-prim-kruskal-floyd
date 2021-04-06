@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html>
+	<head>
+    	<meta charset="UTF-8">
+    	<title>prototype 0.1 </title>
+    	<link rel="stylesheet" href="index.css"> 
+    	<style>
+    		body {
+    			overflow-x: hidden;
+			}
+
+    	</style>
+	</head>
+  	<body>
+<script>
+
+
+/**
+* Function that greets a user
+* @author   Nathan Neuhaus
+*/
+
+
+
+
+	var COUNTS 		= Counts();
+	var SCREENS 	= Screens();
+	var CONTROLS 	= Controls();
+	var TREE 		= Tree();
+	var CODE 		= getCode();
+
+	intitialize();
+
+
+
+	function getBGColor1(){ return "white"; }
+	function getBGColor2(){ return "black"; }
+	function getVal(){ 
+		return { 
+			xy: 30, 
+			xOrig: 50, 
+			yOrig: 150,
+			speed: 20,
+			codeLeft: 50,
+			codeTop: 70,
+			colorDefine: "lime",
+			colorCommand: "#29e",
+			ifC: "<font color="+this.colorCommand+">if</font>"
+		};
+	}
+
+
+	function Tb( n ){
+		var part = "&nbsp;&nbsp;&nbsp;&nbsp;";
+		if (n === undefined ) n = 1;
+
+		var build = "";
+
+		for( var i = 0 ; i < n; i++ )
+			build += part;
+
+		return build;
+	}
+
+
+	function Counts(){ return { divs: 0, nodes: 0, edges: 0 };}
+	function Screens(){ 
+		var ob = { 
+
+			one: Screen( 0 ,  0 , "50%", "60px",getBGColor1()), 
+			two: Screen( "calc(50% + 3px)" ,  "60px" , "calc(50% - 5px)", "calc(100% - 60px)","black"), 
+			thr: Screen( 0 ,  "60px" , "50%","calc(100% - 60px)", getBGColor2()) 
+
+		};
+
+		ob.two.style.borderLeft = "3px solid white";		
+		return ob;
+	}
+
+	function getHeaderScreen(){
+		return SCREENS.one;
+	}
+
+	function getMainScreen(){
+		return SCREENS.thr;
+	}
+
+	function getRightScreen(){
+		return SCREENS.two;
+	}
+
+
+	function Controls(){
+		return { define: null, reset: null, add: null, prim: null, kruskal: null, floyd: null, next: null, prev:null };
+	}
+
+	function Tree(){ return { v : [], e : [] };}
+
+
+
+	function getCode(){
+		return {
+
+			p: prim_code(), 
+			k: kruskal_code(),
+			f: floyd_code(),
+			c: [],
+			def: false
+		}
+
+	}
+
+
+	function intitialize(){
+		spanning_tree_tool( 
+			getVal().xOrig, 
+			getVal().yOrig, 
+			getVal().xy, 
+			getVal().xy, 
+			getMainScreen() 
+		);
+		btn_define( getHeaderScreen() );
+		btn_prim( getHeaderScreen() );
+		btn_kruskal( getHeaderScreen() );
+		btn_floyd( getHeaderScreen() );
+		btn_reset( getHeaderScreen() );
+		//btn_one( getHeaderScreen() );
+		//btn_onehundred( getHeaderScreen() );
+		//btn_onethousand( getHeaderScreen() );
+	}
+
+
+
+
+
+
+	 
+
+	function reset( ){
+
+		removeAll( getMainScreen() );
+		mute_code();
+
+		var vertices = TREE.v;
+		
+		var edges = TREE.e;
+
+		TREE.v = [];
+		TREE.e = [];
+		nodes.count = 0;
+		edges.count = 0;
+
+		spanning_tree_tool( getVal().xOrig, getVal().yOrig, getVal().xy, getVal().xy, getMainScreen());
+
+		CONTROLS.define.style.visibility = "visible";
+		CONTROLS.reset.style.display = "none";
+		CONTROLS.prim.style.display = "none";
+		CONTROLS.kruskal.style.display = "none";
+		CONTROLS.floyd.style.display = "none";
+
+	}
+
+	function Floyd(){
+		if( !CODE.def ) 
+			return false;
+		mute_solution();
+		mute_code();
+		unmute_floyd();
+		CODE.c = CODE.f;	
+		array = [];
+		var tbl = toTbl_prim();
+		var n = tbl.length;
+		
+		array.push( { index: 0 } );
+		array.push( { index: 1 } );
+		array.push( { index: 2 } );
+		array.push( { index: 3 } );
+		array.push( { index: 4 } );
+		
+		for( var k = 0; k < n; k++ ){
+			for( var i = 0; i < n; i++ ){ 
+				for( var j = 0; j < n; j++ ){ 
+					array.push( { index: 5, text: Tb(3) + " out["+i+"]["+j+"] = min( out["+i+"]["+j+"] , out["+i+"]["+k+"] + out["+k+"]["+j+"]);" } );
+					tbl[i][j] = min( tbl[i][j] , tbl[i][k] + tbl[k][j] ); 
+				}
+			}
+		}
+		function min( pre , post ){ 
+			var min = pre; 
+			if( post < pre ){ 
+				min = post; 
+			} 
+			return min;
+		}
+		array.push( { index: 6 } );//	array.push( { index: 14 } );
+
+		var path = floyd_via_prim()
+		
+		while( path.length > 0 ){
+			array.push( path.pop() );
+		}
+		
+		array.push( { floyd: true, data: tbl } )
+		show( array );
+		
+	}
+
+
+	function Kruskal(){
+		if( !CODE.def ) 
+			return false;
+		mute_solution();
+		mute_code();
+		unmute_kruskal();
+		CODE.c = CODE.k;
+		var var_c = "<font color="+getVal().colorCommand+">var</font>";
+		var array = [];
+		
+		var tbls_kruskal = toTbl_kruskal();
+		var e_tbl = tbls_kruskal[0];
+		var v_tbl = tbls_kruskal[1];
+		var n = v_tbl.length, edge = 0, p = -1, q = -1;
+		var F = [];
+		var sets = [];
+		
+		index_block_1();
+		
+		for(var i = 0; i < n; i++){ 
+			sets.push( [i] );
+			loop_1();
+		}	
+		
+		index_block_2();
+		
+		while( F.length < n - 1 ){  
+			var e = edge++;
+			var i = e_tbl[e][0];
+			var j = e_tbl[e][1];
+			loop_2();
+			
+			for( var k = 0; k < sets.length; k++ ){
+				var set = sets[k];
+				loop_3();
+				if( set.indexOf(i) != -1 ){ 
+					p = k;
+					index_block_3();
+				}	
+				
+			}
+			
+			index_block_4();
+			for( var k = 0; k < sets.length; k++ ){
+				var set = sets[k];
+				loop_4();
+				if( set.indexOf(j) != -1 ){ 
+					q = k;
+					index_block_5();
+				}	
+			}
+			
+			index_block_6();
+			
+			if( p != q ){
+				loop_5();
+				for(var k = 0; k < sets[q].length; k++){
+					sets[p].push( sets[q][k] );
+					loop_6();
+				}
+				sets[q] = [];
+				F.push(e);
+				loop_7();
+			}
+		}
+		array.push( { index: 37 } );
+		
+		show( array );
+		
+		function index_block_1(){
+			array.push( { index: 0 } );
+			array.push( { index: 1 } );
+			array.push( { index: 2 } );
+			array.push( { index: 3 } );
+			array.push( { index: 4 } );
+			array.push( { index: 5 } );
+			array.push( { index: 6 } );
+		}
+		function index_block_2(){
+			array.push( { index: 10 } );
+		}
+		function index_block_3(){
+			array.push( { index: 18, text: Tb(3) + "p = "+k+";" } );
+		}
+		function index_block_4(){
+			array.push( { index: 22 } );
+		}
+		function index_block_5(){
+			array.push( { index: 25, text: Tb(3) + "q	 = "+k+";" } );
+		}
+		function index_block_6(){
+			array.push( { index: 29 } );
+		}
+		
+		function loop_1(){
+			array.push( { index: 7, text: Tb(1) + "sets.push( ["+i+"] );" } );
+		}
+		function loop_2(){
+			array.push( { index: 11, text: Tb(1) + var_c +" e = "+e+";" } );
+			array.push( { index: 12, text: Tb(1) + var_c +" i = tbl["+e+"][0];" } );
+			array.push( { index: 13, text: Tb(1) + var_c +" j = tbl["+e+"][1];" } );
+			array.push( { index: 15 } );
+		}
+		function loop_3(){
+			array.push( { index: 16, text: Tb(2) + var_c +" set = sets["+k+"];" } );
+			array.push( { index: 17 } );
+		}
+		function loop_4(){
+			array.push( { index: 23, text: Tb(2) + var_c +" set = sets["+k+"];" } );
+			array.push( { index: 24 } );
+		}
+		function loop_5(){
+			array.push( { index: 30 } );
+		}
+		function loop_6(){
+			array.push( { index: 31, text: Tb(3) + "sets["+p+"].push( sets["+q+"]["+k+"] );"} );
+		}
+		function loop_7(){
+			array.push( { index: 33, text: Tb(2) + "sets["+q+"] = [];" } );
+			array.push( { index: 34, text: Tb(2) + "f.push("+e+");", purple: [ e_tbl[e][0], e_tbl[e][1] ]} );
+		}
+		
+	}
+
+
+
+	function floyd_via_prim(){
+		var array = [];
+		var tbl = toTbl_prim();
+		var n = tbl.length, vn = 0, min = 0;
+		var near = new Array( n );
+		var dist = new Array( n );
+		var active = n - 1;
+		var condition = false;
+		for( var i = 1; i < n; i++ ){
+			near[i] = 0;
+			dist[i] = tbl[0][i];
+		}
+		while( active-- > 0 ){
+			min = 999;
+			for(var i = 1; i < n; i++){
+				condition = (0 <= dist[i] && dist[i] < min);
+				if( condition ){
+					min = dist[i];
+					vn = i;	
+				}	
+			}
+			dist[vn] = -1;
+			array.push( {  purple: [ near[vn] , vn ] } );
+			for(var i = 1; i < n; i++){
+				if(tbl[i][vn] < dist[i]){
+					dist[i] = tbl[i][vn];
+					near[i] = vn;
+				}
+			}	
+		}
+		return array;
+	}
+
+	function Prim(){
+		
+		if( !CODE.def ) 
+			return false;
+		mute_solution();
+		mute_code();
+		unmute_prim();
+		CODE.c = CODE.p;
+		var array = [];
+		var tbl = toTbl_prim();
+		var build = "";
+		var n = tbl.length, vn = 0, min = 0;
+		var near = new Array( n );
+		var dist = new Array( n );
+		var active = n - 1;
+		var condition = false;
+		
+		index_block_1();
+
+		for( var i = 1; i < n; i++ ){
+			near[i] = 0;
+			dist[i] = tbl[0][i];
+			loop_1();
+		}
+		
+		index_block_2();
+		
+		while( active-- > 0 ){
+			min = 999;
+			for(var i = 1; i < n; i++){
+				loop_2();
+				condition = (0 <= dist[i] && dist[i] < min);
+				if( condition ){
+					loop_3();
+					min = dist[i];
+					vn = i;	
+				}	
+			}
+			
+			index_block_3();
+			
+			dist[vn] = -1;
+			for(var i = 1; i < n; i++){
+				loop_4();
+				if(tbl[i][vn] < dist[i]){
+					loop_5();
+					dist[i] = tbl[i][vn];
+					near[i] = vn;
+				}
+			}	
+		}
+		
+		array.push( { index: 31 } );
+		show( array );
+		
+		function index_block_1(){
+			array.push( { index: 0 } );
+			array.push( { index: 1 } );
+			array.push( { index: 2 } );
+			array.push( { index: 3 } );
+			array.push( { index: 4 } );
+			array.push( { index: 5 } );
+			array.push( { index: 6 } );
+			array.push( { index: 7 } );
+			array.push( { index: 8 } );
+		}
+		
+		function index_block_2(){
+			array.push( { index: 12 } );
+			array.push( { index: 13 } );
+			array.push( { index: 14 } );
+			array.push( { index: 15 } );
+		}
+		
+		function index_block_3(){
+			array.push( { index: 14, text: Tb(1)+"min = "+dist[vn]+";" } );
+			array.push( { index: 23, text: Tb(1)+"dist["+vn+"] = -1;", purple: [ near[vn] , vn ] } );
+			array.push( { index: 24 } );
+		}
+		
+		function loop_1(){
+			array.push( { index: 9, text: Tb(1)+"near["+i+"] = 0;" } );
+			array.push( { index: 10, text: Tb(1)+"dist["+i+"] = tbl["+i+"]["+vn+"];" } );
+		}
+		
+		function loop_2(){
+			array.push( { index: 16, text: Tb(2)+"minimized = ( dist["+i+"] > 0 ) && ( dist["+i+"] < "+(min)+" );" } );
+			array.push( { index: 17});
+		}
+		
+		function loop_3(){
+			array.push( { index: 18, text: Tb(3)+"min = dist["+i+"];", clear: true, lime: [ near[i] , i] } );
+			array.push( { index: 14, text: Tb(1)+"min = "+dist[i]+";" } );
+			array.push( { index: 19, text: Tb(3)+"vn = "+i } );
+		}
+		
+		function loop_4(){
+			array.push( { index: 25, text: Tb(2)+getVal().ifC+"( tbl["+i+"]["+vn+"] < dist["+i+"] ){" } );
+		}
+		
+		function loop_5(){
+			array.push( { index: 26, text: Tb(3)+"dist["+i+"] = tbl["+i+"]["+vn+"];" } );
+			array.push( { index: 27, text: Tb(3)+"near["+i+"] = "+vn+";" } );
+		}
+		
+	}
+
+
+	function show( array ){
+		
+		var j = -1;
+		var ip = j - 1;
+		var time = getVal().speed;
+		var vertices = TREE.v;
+		var edges = TREE.e;
+
+		for (var i = 0; i < array.length; i++) {
+			
+		    (function() {
+		        setTimeout(function() { 
+		        	
+		        	if( j++ < array.length ){
+
+		        		var object = array[j];
+
+		        		
+		        		if( object.purple != undefined ){
+			        		var vertices_local = object.purple;
+			        		if( vertices_local.length == 2 ){
+			        			var nearvn = vertices_local[0];
+			        			var vn = vertices_local[1];
+			        			if(vertices.length > nearvn && vertices.length > vn ){	
+			        				var edge_index = getEdgeIndex( nearvn , vn  );
+			        				var edge = edges[ edge_index ].elem;
+			        				edge.style.border = "3px solid red";
+			        			}
+			        		}
+			        	}
+		        		
+		        		if( object.index != undefined ){
+		        			var index = object.index;
+			        		var line = CODE.c[index];
+			        		line.style.opacity = 1;
+			        	}
+		        		
+		        		if( object.text != undefined ){
+		        			var index = object.index;
+			        		var line = CODE.c[index];
+			        		line.innerHTML = getSpaces(index) + object.text;
+		        		}
+		
+		        	 	if( object.clear != undefined ){
+			        		for( var i = 0; i < edges.length; i++ ){
+			        			if( edges[i].elem.style.border.indexOf("lime") != -1 ){
+			        				edges[i].elem.style.border ="3px solid "+getBGColor1()+"";
+			        			}
+			        		}
+			        	}
+		        	 	
+		        		if( false && object.lime != undefined ){
+			        		var vertices_local = object.lime;
+			        		if( vertices_local.length == 2 ){
+			        			var nearvn = vertices_local[0];
+			        			var vn = vertices_local[1];
+			        			if(vertices.length > nearvn && vertices.length > vn ){	
+			        				var edge_index = getEdgeIndex( nearvn , vn  );
+			        				var edge = edges[ edge_index ].elem;
+			        				edge.style.border = "3px solid lime";
+			        			}
+			        		}
+			        	}
+		        		
+		        	}
+		        	
+		        	ip++;
+		        	if( ip >= 0 ){
+		        		var prev_object = array[ip];
+
+		        		if( j < array.length && prev_object.index != undefined ){
+		        			var prev_index = prev_object.index;
+		        			var object = array[j];
+		        			var index = object.index;
+		        			if( index != prev_index ){
+		        				var prev_line = CODE.c[prev_index];
+		        				prev_line.style.opacity = .7;
+		        			}	        		
+			        	}	
+		        	}
+		        }, i * time);
+		    })(i);
+		}	
+	}
+
+
+	function removeAll( par ){
+
+		while( par.childNodes.length > 0 )
+			par.removeChild( par.childNodes[0] );
+
+	}
+
+
+	function mute_code(){
+		for( var i = 0; i < CODE.p.length; i++ ){
+			CODE.p[i].style.visibility = "hidden";
+		}
+		for( var i = 0; i < CODE.k.length; i++ ){
+			CODE.k[i].style.visibility = "hidden";
+		}
+		for( var i = 0; i < CODE.f.length; i++ ){
+			CODE.f[i].style.visibility = "hidden";
+			}
+	}
+
+	function unmute_kruskal(){
+		for( var i = 0; i < CODE.k.length; i++ ){
+			CODE.k[i].style.visibility = "visible";
+		}
+	}
+
+	function unmute_prim(){
+		for( var i = 0; i < CODE.p.length; i++ ){
+			CODE.p[i].style.visibility = "visible";
+		}
+	}
+
+	function unmute_floyd(){
+		for( var i = 0; i < CODE.f.length; i++ ){
+			CODE.f[i].style.visibility = "visible";
+		}
+		floyd_special_reset();
+	}
+
+	function mute_solution(){
+		var edges = TREE.e;
+		for( var i = 0; i < edges.length; i++ ){
+			edges[i].elem.style.border = "3px solid "+getBGColor1()+"";
+		}	
+	}
+
+	function toTbl_kruskal(){
+		var vertices 	= TREE.v;
+		var edges 		= TREE.e;
+		var e_tbl 	= [];
+		var v_tbl 	= [];
+		for(var k = 0; k < edges.length; k++){
+			var row 	= [];
+			var edge	= edges[k];
+			var v0  	= edge.vertices[0].id;
+			var v1  	= edge.vertices[1].id;
+			var len 	= edge.weight;
+			var i 		= retainNumDec( v0 );
+			var j 		= retainNumDec( v1 );
+			row.push( i );
+			row.push( j );
+			row.push( getValue( len ) );
+			e_tbl.push( row );
+		}
+
+		for( var i = 0; i < vertices.length; i++){
+			v_tbl.push(i);
+		}
+		
+		var sorted = kruskalSort( e_tbl );
+
+		return [ sorted , v_tbl ];
+	}
+
+
+	function kruskalSort( edges ){
+		
+		return sort( edges );
+		
+		function sort( edges ){
+			if( edges.length == 1 )
+				return edges;
+
+			var splitAt = Math.ceil((edges.length/2));
+			var L = sort( copyRange( edges, 0, splitAt ) );
+			var R = sort( copyRange( edges, splitAt, edges.length ) );	
+			var joined = [];
+			var j = 0, k = 0;
+			while( j < L.length && k < R.length ){
+				var weightL = L[j][2];
+				var weightR = R[k][2];
+				if( weightL <= weightR ){
+					joined.push( L[j++] );
+				}
+				else{
+					joined.push( R[k++] );
+				}
+			}
+			while( j < L.length ){
+				joined.push( L[j++] );
+			}
+			while( k < R.length ){
+				joined.push( R[k++] );	
+			}
+			return joined;
+		}
+	}
+
+
+
+	function copyRange( array , from, to ){
+		var values = [];
+		for( var i = from; i < to; i++ ){
+			var row = array[i]; 
+			var copied = [];
+			for( var j = 0; j < row.length; j++ ){
+				var value = getValue( row[j] );
+				copied.push( value );
+			}
+			values.push( copied );
+		}
+		return values;
+	}
+
+
+
+
+	function getSpaces( amount ){
+		var build = "";
+		amount += 1;
+		while( amount-- > 0 ){
+			build+="<br>"
+		}
+		return build;
+	}
+		
+		
+		
+		function getEdgeIndex( v0 , v1 ){
+			var edges = TREE.e;
+			for(var i = 0; i < edges.length; i++ ){
+				var edge = edges[i];
+				var ev0 = retainNumDec( edge.vertices[0].id );
+				var ev1 = retainNumDec( edge.vertices[1].id );
+				var permutation1 = ev0 == v0 && ev1 == v1;
+				var permutation2 = ev1 == v0 && ev0 == v1; 
+				if( permutation1 || permutation2 ){
+					return i;
+				}
+			}
+			return null;
+		}
+
+
+	function toTbl_prim(){
+		var vertices = TREE.v;
+		var edges = TREE.e;
+		var tbl = new Array( vertices.length );
+		for( var i = 0; i < vertices.length; i++){
+			tbl[i] = new Array( vertices.length );
+		}
+		for( var i = 0; i < vertices.length; i++){
+			for( var j = 0; j < vertices.length; j++){
+				tbl[i][j] = 99;
+				if( i == j ){ tbl[i][j] = 0; }
+			}
+		}
+		for( var k = 0; k < edges.length; k++){
+			var edge	= edges[k];
+			var v0  	= edge.vertices[0].id;
+			var v1  	= edge.vertices[1].id;
+			var len 	= edge.weight;
+			var i 		= retainNumDec( v0 );
+			var j 		= retainNumDec( v1 );
+			tbl[i][j] = getValue( len );
+			tbl[j][i] = getValue( len );		
+			
+		}
+		return tbl;
+	}
+
+	function def_edge(){
+		
+
+
+		var edges = TREE.e;
+		if( edges.length > 0 ){
+			
+			CONTROLS.define.style.visibility = "none";
+			CONTROLS.reset.style.display = "block";
+			CONTROLS.prim.style.display = "block";
+			CONTROLS.kruskal.style.display = "block";
+			CONTROLS.floyd.style.display = "block";
+
+			disableExpansions();
+			var j = -1;
+			var prev_j = j - 1;
+			var time = 500;
+			var edges = TREE.e;
+			for (var i = 0; i < edges.length; i++) {
+			    (function() {
+			        setTimeout(function() { 
+			        	if( j++ < edges.length ){
+			        		var edge = edges[j].elem;
+				        	var bdr = retainNumDec( edge.style.border );
+				        	edge.style.border = bdr+"px solid "+getVal().colorDefine;	
+				        	var w = retainNumDec( edge.style.width );
+				        	var h = retainNumDec( edge.style.height );
+				        	var l = retainNumDec( edge.style.left );
+				        	var t = retainNumDec( edge.style.top );
+				        	if( h > w ){ h /= 2; l += 10; }
+				        	else{ t -= 10; }
+				        	var x = l + (w/2), y = t + (h/2);
+				        	var number = Math.floor((Math.random() * 20) + 1);
+				        	var p = add_text_dropin( x , y , number , 30, getBGColor1(), time/1000, getMainScreen());
+				        	edges[j].p = p;
+				        	edges[j].weight = p.weight;	
+				        	var vs = edges[j].vertices;
+
+			        	}
+			        	prev_j++;
+			        	if( prev_j >= 0 ){
+			        		var prev_edge = edges[prev_j].elem;
+			        		var prev_bdr = retainNumDec( prev_edge.style.border );
+			        		prev_edge.style.border = prev_bdr+"px solid "+getBGColor1()+""	
+			        	}
+			        	//if( prev_j == edges.length - 2 ){  	CONTROLS.reset.style.visibility = "visible";  }
+			        }, i * time);
+			    })(i);
+			}	
+		}
+	}
+
+	function add_text_dropin( x, y, text , size , color, speed, parent ){
+		var p = paragraph( x , y , text , size, "transparent", parent );
+		var sizer = 200; 
+		var timer = setInterval(function() {
+			p.style.color = color;
+			if ( sizer < size ) { clearInterval( timer ); }
+			p.style.fontSize = (sizer-=5)+"px";	
+		}, speed);
+		return p;
+	}
+
+	function disableExpansions(){
+		CODE.def = true; 
+		var vertices = TREE.v;
+		for(var i = 0; i < vertices.length;i++ ){
+			var vertex = vertices[i];
+			vertex.subL.style.visibility = "hidden";
+			vertex.subT.style.visibility = "hidden";
+			vertex.subR.style.visibility = "hidden";
+			vertex.subB.style.visibility = "hidden";
+		}
+		CONTROLS.define.style.visibility = "hidden";
+	}
+
+
+	function spanning_tree_tool( x , y , w , h, parent ){
+
+		var vertices = TREE.v;
+		for( var i = 0; i < vertices.length; i++ ){
+			var vertex = vertices[i];
+			var element = vertex.elem;
+			var x2 = retainNumDec( element.style.left );
+			var y2 = retainNumDec( element.style.top );
+			var sameX = Math.round(x2) == Math.round(x);
+			var sameY = Math.round(y2) == Math.round(y);
+			if(  sameX && sameY ){
+				
+				
+				
+				return [ vertex.subL, vertex.subT , vertex.subR , vertex.subB , vertex.elem ];
+			}
+		}
+		var main = circle( x , y , w , h , parent );
+		var vcount = (COUNTS.nodes++);
+		main.id = "v"+vcount;
+		main.innerHTML = main.id;
+		main.style.color = getBGColor1();
+		main.style.zIndex = "100";
+		var border = retainNumDec( main.style.border );
+		var dimension = w / 3;
+		var current = COUNTS.divs;
+		
+		var sub1_left = x - (dimension + border );
+		var sub1_top = y + ( h / 2 ) - border ;
+		var sub1 = circle( sub1_left , sub1_top ,dimension,dimension, parent);
+		sub1.id = "sub"+COUNTS.divs++;
+		sub1.style.border = "2px dashed "+getBGColor1()+"";
+		sub1.style.cursor = "pointer";
+		add_event_onmousedown( sub1 , "extendLeft( "+sub1.id+", "+main.id+" );" );
+		add_event_onmouseover( sub1 , "hover( "+sub1.id+" );" );
+		add_event_onmouseout( sub1 , "unhover( "+sub1.id+" );" );
+
+		var sub2_left = x + (dimension);
+		var sub2_top = y - (dimension + border );
+		var sub2 = circle( sub2_left , sub2_top ,dimension,dimension , parent);
+		sub2.id = "sub"+(COUNTS.divs++);
+		sub2.style.border = "2px dashed "+getBGColor1()+"";
+		sub2.style.cursor = "pointer";
+		add_event_onmousedown( sub2 , "extendUp( "+sub2.id+", "+main.id+" );" );
+		add_event_onmouseover( sub2 , "hover( "+sub2.id+" );" );
+		add_event_onmouseout( sub2 , "unhover( "+sub2.id+" );" );
+
+		var sub3_left = x + w + border + (border/2);
+		var sub3_top = y + ( h / 2 ) - border ;
+		var sub3 = circle( sub3_left , sub3_top ,dimension,dimension, parent);
+		sub3.id = "sub"+COUNTS.divs++;
+		sub3.style.border = "2px dashed "+getBGColor1()+"";
+		sub3.style.cursor = "pointer";
+		add_event_onmousedown( sub3 , "extendRight( "+sub3.id+", "+main.id+" );" );
+		add_event_onmouseover( sub3 , "hover( "+sub3.id+" );" );
+		add_event_onmouseout( sub3 , "unhover( "+sub3.id+" );" );
+		
+		var sub4_left = x + (dimension);
+		var sub4_top = y + ( h + border ) + (border/2);
+		var sub4 = circle( sub4_left , sub4_top ,dimension,dimension, parent);
+		sub4.id = "sub"+COUNTS.divs++;
+		sub4.style.border = "2px dashed "+getBGColor1()+"";
+		sub4.style.cursor = "pointer";
+		add_event_onmousedown( sub4 , "extendDown( "+sub4.id+", "+main.id+" );" );
+		add_event_onmouseover( sub4 , "hover( "+sub4.id+" );" );
+		add_event_onmouseout( sub4 , "unhover( "+sub4.id+" );" );
+		
+		var vertex = new Object();
+		vertex.elem = main;
+		vertex.subL = sub1;
+		vertex.subT = sub2;
+		vertex.subR = sub3;
+		vertex.subB = sub4;
+		TREE.v.push( vertex );
+
+		btnHeaderStyle( main );
+		main.style.fontSize = "10px";
+		main.style.lineHeight = "30px";
+		main.style.textAlign = "center";
+
+		return [ sub1 , sub2 , sub3 , sub4 , main ]
+	}
+
+	function extendLeft( div , main ){
+		var w = retainNumDec( div.style.width ) * 10;
+		var l = retainNumDec( div.style.left ) - (w - (w/10));
+		var t = retainNumDec( div.style.top ) + retainNumDec( div.style.border ) ;
+		div.style.visibility="hidden";
+		var line = box( l , t , w , 0 , getMainScreen() );
+		line.style.zIndex = "1";
+		line.id = "line"+(COUNTS.edges++);
+		//line.innerHTML= line.id;
+		line.style.color=getBGColor1();
+		var bdr = retainNumDec(main.style.border) * 3;
+		var w2 = retainNumDec( main.style.width );
+		var t2 = retainNumDec( main.style.top );
+		var l2 = retainNumDec( main.style.left ) - (w2 + w + bdr);
+		var subcircles = spanning_tree_tool(l2, t2, w2, w2, getMainScreen() );
+		subcircles[2].style.visibility="hidden";
+		var edge = new Object();
+		edge.elem = line;
+		edge.vertices = [ main, subcircles[4] ];
+		TREE.e.push( edge );
+	}
+
+
+	function extendUp( div , main ){
+		var w = retainNumDec( div.style.width ) * 10;
+		var l = retainNumDec( main.style.left ) + (retainNumDec( main.style.width ) / 2);
+		var t = (retainNumDec( div.style.top ) - w) + retainNumDec( div.style.width );
+		div.style.visibility="hidden";
+		var line = box( l , t , 0 , w, getMainScreen());
+		line.id = "line"+(COUNTS.edges++);
+		//line.innerHTML= line.id;
+		line.style.color=getBGColor1();
+		line.style.zIndex = "1";
+		var l2 = l - (((w/10)*3)/2);
+		var w2 = retainNumDec( div.style.width ) * 3;
+		var t2 = t - ((w/10)*3) - (retainNumDec( div.style.border )* 2);
+		var subcircles = spanning_tree_tool(l2, t2, w2, w2, getMainScreen() );
+		subcircles[3].style.visibility="hidden";
+		var edge = new Object();
+		edge.elem = line;
+		edge.vertices = [main, subcircles[4] ];
+		TREE.e.push( edge );
+		
+		//alert(edge.vertices)
+	}
+
+
+	function extendRight( div, main ){
+		var w = retainNumDec( div.style.width ) * 10;
+		var l = retainNumDec( div.style.left );
+		var t = retainNumDec( div.style.top ) + retainNumDec( div.style.border ) ;
+		div.style.visibility="hidden";
+		var line = box( l , t , w , 0, getMainScreen() );
+		line.style.zIndex = "1";
+		line.id = "line"+(COUNTS.edges++);
+		//line.innerHTML= line.id;
+		line.style.color=getBGColor1();
+		var bdr = retainNumDec(main.style.border) * 3;
+		var w2 = retainNumDec( main.style.width );
+		var l2 = retainNumDec( main.style.left ) + w2 + w + bdr;
+		var t2 = retainNumDec( main.style.top );
+		var subcircles = spanning_tree_tool(l2, t2, w2, w2,getMainScreen() );
+		subcircles[0].style.visibility="hidden";
+		var edge = new Object();
+		edge.elem = line;
+		edge.vertices = [main, subcircles[4] ];
+		TREE.e.push( edge );
+	//	alert(edge.vertices)
+	}
+
+	function extendDown( div , main ){
+		var bdr1 = retainNumDec(main.style.border) * 1;
+		var w = retainNumDec( div.style.width ) * 10;
+		var l = retainNumDec( main.style.left ) + (retainNumDec( main.style.width ) / 2) ;
+		var t = retainNumDec( main.style.top ) + retainNumDec( main.style.width ) + bdr1;
+		div.style.visibility="hidden";
+		var line = box( l , t , 0 , w, getMainScreen() );
+		line.style.zIndex = "1";
+		line.id = "line"+(COUNTS.edges++);
+		//line.innerHTML= line.id;
+		line.style.color=getBGColor1();
+		var l2 = l - (((w/10)*3)/2);
+		var w2 = retainNumDec( div.style.width ) * 3;
+		var t2 = t + w + retainNumDec( div.style.border ) + retainNumDec( div.style.border );
+		var subcircles = spanning_tree_tool(l2, t2, w2, w2 ,getMainScreen());
+		subcircles[1].style.visibility="hidden";
+		var edge = new Object();
+		edge.elem = line;
+		edge.vertices = [main, subcircles[4] ]; 
+		TREE.e.push( edge );
+	}
+
+	function Screen( x , y, w, h, color ){
+		var div = document.createElement('div');
+		div.id = 'screen'+COUNTS.divs++;
+		div.style.position = 'absolute';
+		div.style.backgroundColor = color;
+		div.style.left = x;
+		div.style.top = y;
+		div.style.width = w;
+		div.style.height = h;
+		div.style.overflowY = 'hidden';
+		div.style.overflowX = 'scroll';
+		document.body.appendChild( div );
+		return div;
+	}
+
+	function circle( x , y , w , h , parent){
+		var div = document.createElement('div');
+		div.id = 'box'+COUNTS.divs++;
+		div.style.position = 'absolute';
+		div.style.backgroundColor = 'transparent';
+		div.style.left = x+'px';
+		div.style.top = y+'px';
+		div.style.width = w+'px';
+		div.style.height = h+'px';
+		div.style.border=" 3px solid "+getBGColor1()+"";
+		div.style.borderRadius="50%";
+		if(parent == undefined ){ parent = document.body; }
+		parent.appendChild( div );
+		return div;
+	}
+
+	function box( x , y , w , h , parent ){
+		var div = document.createElement('div');
+		div.id = 'box'+COUNTS.divs++;
+		div.style.position = 'absolute';
+		div.style.backgroundColor = 'transparent';
+		div.style.left = x+'px';
+		div.style.top = y+'px';
+		div.style.width = w+'px';
+		div.style.height = h+'px';
+		div.style.border=" 3px solid "+getBGColor1()+"";
+		btnHeaderStyle( div );
+		if(parent == undefined ){ parent = document.body; }
+		parent.appendChild( div );
+		return div;
+	}
+
+	function button( x , y, w, h , text , fnction , parent ){
+		var select = box( x, y, w, h , parent );
+		set_cursor_pointer( select );
+		select.innerHTML = text ;
+		select.style.position = 'absolute';
+		add_event_onmousedown ( select , fnction );
+		return select;
+	}
+
+
+
+
+
+	function setSpeed( newspeed ){
+		if( newspeed > 0 ){
+			alert("setting speed to "+newspeed);
+			speed = newspeed;
+		}
+	}
+
+	function btn_one( par ){
+		var go = button( 0, 10 , 30 , 30 , "1", "setSpeed(5)", par );
+		go.style.font = "italic bold 10px arial,serif";
+		go.style.borderRadius="20px 20px 20px 20px ";
+		go.style.position = "absolute";
+		CONTROLS.one = go;
+		go.style.border=" 3px solid "+getBGColor2()+"";
+		go.style.color=getBGColor2();
+		go.style.fontSize = "10px";
+		go.style.lineHeight = "30px";
+		go.style.textAlign = "center";
+	}
+
+	function btn_onehundred( par ){
+		var go = button( 40, 10 , 30 , 30 , "100", "setSpeed(100)", par );
+		go.style.font = "italic bold 10px arial,serif";
+		go.style.borderRadius="20px 20px 20px 20px ";
+		go.style.position = "absolute";
+		CONTROLS.onehundred = go;
+		go.style.border=" 3px solid "+getBGColor2()+"";
+		go.style.color=getBGColor2();
+		go.style.fontSize = "10px";
+		go.style.lineHeight = "30px";
+		go.style.textAlign = "center";
+		btnHeaderStyle( go );
+	}
+
+	function btn_onethousand( par ){
+		var go = button( 80, 10 , 30 , 30 , "300", "setSpeed(300)", par );
+		go.style.font = "italic bold 10px arial,serif";
+		go.style.borderRadius="20px 20px 20px 20px ";
+		go.style.position = "absolute";
+		CONTROLS.thousand = go;
+		go.style.border=" 3px solid "+getBGColor2()+"";
+		go.style.color=getBGColor2();
+		go.style.fontSize = "10px";
+		go.style.lineHeight = "30px";
+		go.style.textAlign = "center";
+		btnHeaderStyle( go );
+	}
+
+	function btn_define( par ){
+		var go = button( 120, 10 , 80 , 30 , "DEFINE", "def_edge()", par  );
+		go.style.left = "calc(50%) ;"
+		go.style.font = "italic bold 20px arial,serif";
+		go.style.borderRadius="20px 20px 20px 20px ";
+		go.style.border=" 3px solid "+getBGColor2()+"";
+		go.style.color=getBGColor2();
+		CONTROLS.define = go;
+		go.style.fontSize = "15px";
+		go.style.lineHeight = "28px";
+		go.style.textAlign = "center";
+		btnHeaderStyle( go );
+		return go;
+	}
+
+	function btn_reset( par ){
+		var go = button( 120, 10 , 80 , 30 , "RESET", "reset()", par );
+		go.style.font = "italic bold 20px arial,serif";
+		go.style.color = getBGColor1();
+		go.style.borderRadius="20px 20px 20px 20px ";
+		CONTROLS.reset = go;
+		CONTROLS.reset.style.display = "none";
+		go.style.border=" 3px solid "+getBGColor2()+"";
+		go.style.color=getBGColor2();
+		go.style.fontSize = "15px";
+		go.style.lineHeight = "28px";
+		go.style.textAlign = "center";
+		btnHeaderStyle( go );
+		return go;
+	}
+
+	function btn_prim( par ){
+		var go = button( 210, 10 , 80 , 30 , "PRIM", "Prim()", par );
+		go.style.font = "italic bold 20px arial,serif";
+		go.style.color = getBGColor1();
+		go.style.borderRadius="20px 20px 20px 20px ";
+		go.style.position = "absolute";
+		CONTROLS.prim = go;
+		go.style.border=" 3px solid "+getBGColor2()+"";
+		go.style.color=getBGColor2();
+		go.style.fontSize = "15px";
+		go.style.lineHeight = "28px";
+		go.style.textAlign = "center";
+		go.style.display = "none";
+		btnHeaderStyle( go );
+	}
+
+	function btn_kruskal( par ){
+		var go = button( 300, 10 , 100 , 30 , "KRUSKAL", "Kruskal()", par );
+		go.style.font = "italic bold 20px arial,serif";
+		go.style.color = getBGColor1();
+		go.style.borderRadius="20px 20px 20px 20px ";
+		go.style.position = "absolute";
+		CONTROLS.kruskal = go;
+		go.style.border=" 3px solid "+getBGColor2()+"";
+		go.style.color=getBGColor2();
+		go.style.fontSize = "15px";
+		go.style.lineHeight = "28px";
+		go.style.textAlign = "center";
+		go.style.display = "none";
+		btnHeaderStyle( go );
+	}
+
+	function btn_floyd( par ){
+		var go = button( 410, 10 , 80 , 30 , "FLOYD", "Floyd()", par );
+		go.style.font = "italic bold 20px arial,serif";
+		go.style.color = getBGColor1();
+		go.style.borderRadius="20px 20px 20px 20px ";
+		go.style.position = "absolute";
+		CONTROLS.floyd = go;
+		go.style.border=" 3px solid "+getBGColor2()+"";
+		go.style.color=getBGColor2();
+		go.style.fontSize = "15px";
+		go.style.lineHeight = "28px";
+		go.style.textAlign = "center";
+		go.style.display = "none";
+		btnHeaderStyle( go );
+	}
+
+
+	function btnHeaderStyle( div ){
+
+		div.style["-webkit-user-select"] = "none";
+		div.style["-moz-user-select"] = "none";
+		div.style["-ms-user-select"] = "none";
+		div.style["user-select"] = "none";
+	}
+
+
+
+	function paragraph( x, y, text , textsize , color , parent ){
+		var p = document.createElement('p'); 
+		p.style.position = 'absolute';
+		p.id = 'paragraph'+COUNTS.divs++;
+		p.style.backgroundColor = 'transparent';
+		p.style.left = x+'px';
+		p.style.top = y+'px';
+		var t = document.createTextNode( text );
+		p.style.color = color;
+		p.style.fontSize = textsize;
+		p.appendChild(t);
+		if(parent == undefined ){ parent = document.body; }
+		parent.appendChild(p);
+		p.set = function( value ){ t.nodeValue = value; };
+		p.weight = t.nodeValue;
+		return p;
+	}
+
+
+
+
+
+	function retainNumDec(string){
+		var onlyNumbers = string.replace(/[^0-9\.]+/g,' ');
+		string.indexOf('-')!=-1 ? onlyNumbers = '-'+onlyNumbers : null;
+		return onlyNumbers.replace(" ","").trim()*1;
+	};
+
+	function add_event_onmousedown( div , fnction ){
+		add_event( div , 'onmousedown', fnction );	
+	}
+
+	function hover( div ){
+		div.style.border = "2px solid "+getBGColor1()+"";
+	}
+	function unhover( div ){
+		div.style.border = "2px dashed "+getBGColor1()+"";
+	}
+
+	function add_event_onmouseover( div , fnction ){
+		add_event( div , 'onmouseover', fnction );	
+	}
+
+	function add_event_onmouseout( div , fnction ){
+		add_event( div , 'onmouseout', fnction );	
+	}
+
+	function add_event( div , event , fnction ){
+		var att = document.createAttribute( event ); 
+		att.value = fnction;
+		div.setAttributeNode(att);
+	}
+
+	function set_cursor_pointer( div ){
+		div.style.cursor ="pointer";
+	}
+
+	function getValue( string ){ 
+		string+="";
+		return string.replace("","").trim()*1;
+	};
+
+	function get_blank_lines( x , y , n , parent ){
+		var lines = [];
+		for( var i = 0; i < n; i++ ){
+			lines.push( paragraph( x, y, "" , 20 , getBGColor1(), parent ) );	
+		}	
+		return lines;
+	}
+
+
+
+	function prim_code(){
+		var space = "";
+		var var_c = "<font color="+getVal().colorCommand+">var</font>";
+		var new_c = "<font color="+getVal().colorCommand+">new</font>";
+		var false_c = "<font color="+getVal().colorCommand+">false</font>";
+		var for_c = "<font color="+getVal().colorCommand+">for</font>";
+		var while_c = "<font color="+getVal().colorCommand+">while</font>";
+		var if_c = "<font color="+getVal().colorCommand+">if</font>";
+		var opacity = 0.6;
+
+		this.lines = get_blank_lines( getVal().codeLeft , getVal().codeTop , 32, getRightScreen() );
+		
+		this.lines[0].innerHTML = spaced() + var_c + " n = tbl.length;";
+		this.lines[1].innerHTML = spaced() + var_c + " vn = 0;";
+		this.lines[2].innerHTML = spaced() + var_c + " min = 0;";
+		this.lines[3].innerHTML = spaced() + var_c + " near = "+new_c+" Array( n );";
+		this.lines[4].innerHTML = spaced() + var_c + " dist = "+new_c+" Array( n );";
+		this.lines[5].innerHTML = spaced() + var_c + " runs =  n - 1;";
+		this.lines[6].innerHTML = spaced() + var_c + " minimized = "+false_c+";";
+		this.lines[7].innerHTML = spaced();
+		this.lines[8].innerHTML = spaced() + for_c + "( "+var_c+" i = 1;  i < n;  i++ ){ ";
+		this.lines[9].innerHTML = spaced() + Tb(1)+"near[i] = 0;";
+		this.lines[10].innerHTML = spaced() + Tb(1)+"dist[i] = tbl[vn][i];";
+		this.lines[11].innerHTML = spaced() + "}";
+		this.lines[12].innerHTML = spaced();
+		
+		this.lines[13].innerHTML = spaced() + while_c + "( runs-- > 0 ){ ";
+		this.lines[14].innerHTML = spaced() + Tb(1)+"min = 999;";
+		this.lines[15].innerHTML = spaced() + Tb(1)+for_c + "( "+var_c+" i = 1;  i < n;  i++ ){ ";
+		this.lines[16].innerHTML = spaced() + Tb(2)+"minimized =  ( dist[i] > 0 ) && ( dist[i] < min );";
+		this.lines[17].innerHTML = spaced() + Tb(2)+if_c+"( minimized ){";
+		this.lines[18].innerHTML = spaced() + Tb(3)+"min = dist[i];";
+		this.lines[19].innerHTML = spaced() + Tb(3)+"vn = i;";
+		this.lines[20].innerHTML = spaced() + Tb(2)+"}";
+		this.lines[21].innerHTML = spaced() + Tb(1)+"}";
+		this.lines[22].innerHTML = spaced();
+		
+		this.lines[23].innerHTML = spaced() + Tb(1)+"dist[vn] = -1;";
+		this.lines[24].innerHTML = spaced() + Tb(1)+for_c + "( "+var_c+" i = 1;  i < n;  i++ ){ ";
+		this.lines[25].innerHTML = spaced() + Tb(2)+if_c+"( tbl[i][vn] < dist[i] ){";
+		this.lines[26].innerHTML = spaced() + Tb(3)+"dist[i] = tbl[i][vn];";
+		this.lines[27].innerHTML = spaced() + Tb(3)+"near[i] = vn;";
+		this.lines[28].innerHTML = spaced() + Tb(2)+"}";
+		this.lines[29].innerHTML = spaced() + Tb(1)+"}";
+		this.lines[30].innerHTML = spaced() + "}";
+		this.lines[31].innerHTML = "";
+		
+		for(var i = 0; i < this.lines.length; i++ ){
+			this.lines[i].style.fontFamily = 'monospace';
+		}
+		for(var i = 0; i < this.lines.length; i++ ){
+			this.lines[i].style.opacity= opacity;
+		}
+		for(var i = 0; i < this.lines.length; i++ ){
+			this.lines[i].style.fontSize= "12px";
+		}
+		for(var i = 0; i < this.lines.length; i++ ){
+			this.lines[i].style.visibility= "hidden";
+		}
+		function spaced(){ space += "<br>"; return space; }	
+		
+		return this.lines;
+	}
+
+
+
+	function floyd_code(){
+		var space = "";
+		var var_c = "<font color="+getVal().colorCommand+">var</font>";
+		var new_c = "<font color="+getVal().colorCommand+">new</font>";
+		var false_c = "<font color="+getVal().colorCommand+">false</font>";
+		var for_c = "<font color="+getVal().colorCommand+">for</font>";
+		var while_c = "<font color="+getVal().colorCommand+">while</font>";
+		var if_c = "<font color="+getVal().colorCommand+">if</font>";
+		var function_c = "<font color="+getVal().colorCommand+">function</font>";
+		var return_c = "<font color="+getVal().colorCommand+">return</font>";
+		
+		var opacity = 0.6;
+		this.lines = get_blank_lines( getVal().codeLeft , getVal().codeTop , 15 , getRightScreen() );
+		
+		for(var i = 0; i < this.lines.length - 1; i++ ){
+			this.lines[i].style.fontFamily = 'monospace';
+		}
+		for(var i = 0; i < this.lines.length - 1; i++ ){
+			this.lines[i].style.opacity= opacity;
+		}
+		for(var i = 0; i < this.lines.length - 1; i++ ){
+			this.lines[i].style.fontSize= "12px";
+		}
+		for(var i = 0; i < this.lines.length - 1; i++ ){
+			this.lines[i].style.visibility= "hidden";
+		}
+		function spaced(){ space += "<br>"; return space; }	
+		
+		this.lines[0].innerHTML = spaced() + var_c + " n = tbl.length;";
+		this.lines[1].innerHTML = spaced() + var_c + " out = copy( tbl );";
+		this.lines[2].innerHTML = spaced() + for_c + "( "+var_c+" k = 0;  k < n;  k++ )";
+		this.lines[3].innerHTML = spaced() + Tb(1) + for_c + "( "+var_c+" i = 0;  i < n;  i++ )";
+		this.lines[4].innerHTML = spaced() + Tb(2) + for_c + "( "+var_c+" j = 0;  j < n;  j++ )";
+		this.lines[5].innerHTML = spaced() + Tb(3) + " out[i][j] = min( out[i][j] , out[i][k] + out[k][j] );";
+		
+
+		this.lines[6].innerHTML = spaced() + "";
+		this.lines[7].innerHTML = spaced() + "";
+		
+		
+		return this.lines;
+	}
+
+	function floyd_special_line(){
+		return CODE.f[7];
+	}
+	function floyd_special_reset(){
+		CODE.f[7].innerHTML="<br><br><br><br><br><br><br><br>";
+	}
+
+
+	function kruskal_code(){
+		var space = "";
+		var var_c = "<font color="+getVal().colorCommand+">var</font>";
+		var new_c = "<font color="+getVal().colorCommand+">new</font>";
+		var false_c = "<font color="+getVal().colorCommand+">false</font>";
+		var for_c = "<font color="+getVal().colorCommand+">for</font>";
+		var while_c = "<font color="+getVal().colorCommand+">while</font>";
+		var if_c = "<font color="+getVal().colorCommand+">if</font>";
+		var opacity = 0.6;
+		this.lines = get_blank_lines( getVal().codeLeft , getVal().codeTop , 38 , getRightScreen() );
+		
+		for(var i = 0; i < this.lines.length; i++ ){
+			this.lines[i].style.fontFamily = 'monospace';
+		}
+		for(var i = 0; i < this.lines.length; i++ ){
+			this.lines[i].style.opacity= opacity;
+		}
+		for(var i = 0; i < this.lines.length; i++ ){
+			this.lines[i].style.fontSize= "12px";
+		}
+		for(var i = 0; i < this.lines.length; i++ ){
+			this.lines[i].style.visibility= "hidden";
+		}
+		function spaced(){ space += "<br>"; return space; }	
+		
+		
+		this.lines[0].innerHTML = spaced() + var_c + " n = tbl.length;";
+		this.lines[1].innerHTML = spaced() + var_c + " edge = 0;";
+		this.lines[2].innerHTML = spaced() + var_c + " p = -1;";
+		this.lines[3].innerHTML = spaced() + var_c + " q = -1;";
+		this.lines[4].innerHTML = spaced() + var_c + " f = [];";
+		this.lines[5].innerHTML = spaced() + var_c + " sets = [];";
+		this.lines[6].innerHTML = spaced() + for_c + "( "+var_c+" i = 0;  i < n;  i++ ){ ";
+		this.lines[7].innerHTML = spaced() + Tb(1) + "sets.push( [i] );";
+		this.lines[8].innerHTML = spaced() + "}";
+		this.lines[9].innerHTML = spaced();
+		this.lines[10].innerHTML = spaced() + while_c + "( f.length < n - 1 ){ ";
+		this.lines[11].innerHTML = spaced() + Tb(1) + var_c +" e = edge++;";
+		this.lines[12].innerHTML = spaced() + Tb(1) + var_c +" i = tbl[e][0];";
+		this.lines[13].innerHTML = spaced() + Tb(1) + var_c +" j = tbl[e][1];";
+		this.lines[14].innerHTML = spaced();
+		
+		this.lines[15].innerHTML = spaced() + Tb(1) + for_c + "( "+var_c+" k = 0; k < sets.length;  k++ ){ ";
+		this.lines[16].innerHTML = spaced() + Tb(2) + var_c +" set = sets[k];";
+		this.lines[17].innerHTML = spaced() + Tb(2) + if_c +"( set.indexOf(i) != -1 ){";
+		this.lines[18].innerHTML = spaced() + Tb(3) +"p = k;";
+		this.lines[19].innerHTML = spaced() + Tb(2) +"}";
+		this.lines[20].innerHTML = spaced() + Tb(1) + "}";
+		this.lines[21].innerHTML = spaced();
+		
+		this.lines[22].innerHTML = spaced() + Tb(1) + for_c + "( "+var_c+" k = 0; k < sets.length;  k++ ){ ";
+		this.lines[23].innerHTML = spaced() + Tb(2) + var_c +" set = sets[k];";
+		this.lines[24].innerHTML = spaced() + Tb(2) + if_c +"( set.indexOf(j) != -1 ){";
+		this.lines[25].innerHTML = spaced() + Tb(3) +"q = k;";
+		this.lines[26].innerHTML = spaced() + Tb(2) +"}";
+		this.lines[27].innerHTML = spaced() + Tb(1) + "}";
+		this.lines[28].innerHTML = spaced();
+		
+		this.lines[29].innerHTML = spaced() + Tb(1) + if_c +"( p != q ){";
+		this.lines[30].innerHTML = spaced() + Tb(2) + for_c + "( "+var_c+" k = 0; k < sets[q].length;  k++ ){ ";
+		this.lines[31].innerHTML = spaced() + Tb(3) + "sets[p].push( sets[q][k] );";
+		this.lines[32].innerHTML = spaced() + Tb(2) + "}";
+		this.lines[33].innerHTML = spaced() + Tb(2) + "sets[q] = [];";
+		this.lines[34].innerHTML = spaced() + Tb(2) + "f.push(e);";
+		this.lines[35].innerHTML = spaced() + Tb(1) + "}";
+		this.lines[36].innerHTML = spaced() + "} ";
+		this.lines[37].innerHTML = "";
+		return this.lines;
+	}
+
+
+
+</script>
+  	
+  	
+  	
+  	
+  	
+		
+	</body>
+</html>
